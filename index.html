@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1e3c72">
+ <title>Sudoku</title>
+ <style>
+  * {
+   box-sizing: border-box;
+   margin: 0;
+   padding: 0;
+  }
+
+  body {
+   font-family: 'Segoe UI', Arial, sans-serif;
+   background: linear-gradient(135deg, #1e3c72, #2a5298);
+   min-height: 100vh;
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   justify-content: center;
+   padding: 20px;
+   color: #fff;
+  }
+
+  h1 {
+   margin-bottom: 10px;
+   font-weight: 300;
+   letter-spacing: 2px;
+  }
+
+  #topbar {
+   display: flex;
+   justify-content: space-between;
+   align-items: center;
+   width: min(90vw, 450px);
+   margin-bottom: 10px;
+   font-size: 15px;
+  }
+
+  #timer {
+   background: rgba(255, 255, 255, 0.15);
+   padding: 6px 14px;
+   border-radius: 20px;
+   font-variant-numeric: tabular-nums;
+   font-weight: 600;
+   letter-spacing: 1px;
+  }
+
+  #best {
+   background: rgba(255, 255, 255, 0.15);
+   padding: 6px 14px;
+   border-radius: 20px;
+   font-size: 13px;
+   opacity: 0.9;
+  }
+
+  #board {
+   display: grid;
+   grid-template-columns: repeat(9, 1fr);
+   width: min(90vw, 450px);
+   height: min(90vw, 450px);
+   background: #fff;
+   border: 3px solid #0d1b3e;
+   border-radius: 6px;
+   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  }
+
+  .cell {
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   font-size: min(5vw, 22px);
+   font-weight: 600;
+   color: #1a237e;
+   border: 1px solid #c5cae9;
+   cursor: pointer;
+   user-select: none;
+   transition: background 0.15s;
+  }
+
+  .cell.fixed {
+   color: #000;
+   cursor: default;
+  }
+
+  .cell.highlight {
+   background: #e3f2fd;
+  }
+
+  .cell.same-number {
+   background: #b3e5fc;
+  }
+
+  .cell.selected {
+   background: #64b5f6 !important;
+   color: #fff;
+  }
+
+  .cell.selected.fixed {
+   color: #fff;
+  }
+
+  .cell.error {
+   color: #d32f2f;
+   background: #ffcdd2 !important;
+  }
+
+  .cell:nth-child(3n) {
+   border-right: 2px solid #0d1b3e;
+  }
+
+  .cell:nth-child(9n+1) {
+   border-left: 2px solid #0d1b3e;
+  }
+
+  .cell:nth-child(n+19):nth-child(-n+27),
+  .cell:nth-child(n+46):nth-child(-n+54) {
+   border-bottom: 2px solid #0d1b3e;
+  }
+
+  .cell:nth-child(-n+9) {
+   border-top: 2px solid #0d1b3e;
+  }
+
+  .cell:nth-child(n+73) {
+   border-bottom: 2px solid #0d1b3e;
+  }
+
+  #pad {
+   display: grid;
+   grid-template-columns: repeat(5, 1fr);
+   gap: 8px;
+   margin-top: 20px;
+   width: min(90vw, 450px);
+  }
+
+  #pad button {
+   padding: 12px 0;
+   font-size: 18px;
+   font-weight: 600;
+   border: none;
+   border-radius: 8px;
+   background: #fff;
+   color: #1a237e;
+   cursor: pointer;
+   transition: transform 0.1s, background 0.15s;
+  }
+
+  #pad button:hover {
+   background: #c5cae9;
+  }
+
+  #pad button:active {
+   transform: scale(0.95);
+  }
+
+  #pad button.erase {
+   background: #ffcdd2;
+   color: #b71c1c;
+  }
+
+  #controls {
+   margin-top: 15px;
+   display: flex;
+   gap: 10px;
+   flex-wrap: wrap;
+   justify-content: center;
+  }
+
+  #controls button {
+   padding: 10px 18px;
+   border: none;
+   border-radius: 8px;
+   background: #fff;
+   color: #1a237e;
+   font-weight: 600;
+   cursor: pointer;
+   font-size: 14px;
+   transition: background 0.15s, transform 0.1s;
+  }
+
+  #controls button:hover {
+   background: #c5cae9;
+  }
+
+  #controls button:active {
+   transform: scale(0.97);
+  }
+
+  #msg {
+   margin-top: 12px;
+   height: 22px;
+   font-size: 16px;
+   font-weight: 600;
+   text-align: center;
+  }
+
+  .record {
+   color: #ffd54f !important;
+   text-shadow: 0 0 10px rgba(255, 213, 79, 0.6);
+  }
+ </style>
+</head>
+
+<body>
+
+ <h1>SUDOKU</h1>
+
+ <div id="topbar">
+  <div id="timer">⏱ 00:00</div>
+  <div id="best">🏆 Mejor: --:--</div>
+ </div>
+
+ <div id="board"></div>
+
+ <div id="pad"></div>
+
+ <div id="controls">
+  <button id="newGame">Nuevo juego</button>
+  <button id="check">Comprobar</button>
+  <button id="resetTimer">Reiniciar reloj</button>
+  <button id="clearSave">Borrar guardado</button>
+ </div>
+ <div id="msg"></div>
+
+ <script>
+  /* ---------- Generador de Sudoku ---------- */
+  function shuffle(a) {
+   for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+   }
+   return a;
+  }
+
+  function generateFullBoard() {
+   const board = Array.from({ length: 9 }, () => Array(9).fill(0));
+
+   function isValid(b, r, c, n) {
+    for (let i = 0; i < 9; i++) {
+     if (b[r][i] === n || b[i][c] === n) return false;
+    }
+    const br = Math.floor(r / 3) * 3, bc = Math.floor(c / 3) * 3;
+    for (let i = 0; i < 3; i++)
+     for (let j = 0; j < 3; j++)
+      if (b[br + i][bc + j] === n) return false;
+    return true;
+   }
+
+   function fill(b) {
+    for (let r = 0; r < 9; r++) {
+     for (let c = 0; c < 9; c++) {
+      if (b[r][c] === 0) {
+       const nums = shuffle([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+       for (const n of nums) {
+        if (isValid(b, r, c, n)) {
+         b[r][c] = n;
+         if (fill(b)) return true;
+         b[r][c] = 0;
+        }
+       }
+       return false;
+      }
+     }
+    }
+    return true;
+   }
+
+   fill(board);
+   return board;
+  }
+
+  function makePuzzle(fullBoard, holes) {
+   const puzzle = fullBoard.map(r => r.slice());
+   const positions = [];
+   for (let r = 0; r < 9; r++)
+    for (let c = 0; c < 9; c++)
+     positions.push([r, c]);
+
+   shuffle(positions);
+   for (let i = 0; i < holes; i++) {
+    const [r, c] = positions[i];
+    puzzle[r][c] = 0;
+   }
+   return puzzle;
+  }
+
+  /* ---------- Estado del juego ---------- */
+  const boardEl = document.getElementById('board');
+  const padEl = document.getElementById('pad');
+  const msgEl = document.getElementById('msg');
+  const timerEl = document.getElementById('timer');
+  const bestEl = document.getElementById('best');
+
+  let solution = [];
+  let puzzle = [];
+  let selected = null;
+  let won = false;
+
+  /* ---------- Temporizador ---------- */
+  let startTime = 0;
+  let elapsed = 0;
+  let timerId = null;
+  let running = false;
+
+  const BEST_KEY = 'sudoku_best_time';
+  const SAVE_KEY = 'sudoku_save_v1';
+
+  function formatTime(ms) {
+   const total = Math.floor(ms / 1000);
+   const m = String(Math.floor(total / 60)).padStart(2, '0');
+   const s = String(total % 60).padStart(2, '0');
+   return `${m}:${s}`;
+  }
+
+  function updateTimerDisplay() {
+   timerEl.textContent = '⏱ ' + formatTime(elapsed);
+  }
+
+  function startTimer() {
+   if (running) return;
+   running = true;
+   startTime = performance.now() - elapsed;
+   timerId = setInterval(() => {
+    elapsed = performance.now() - startTime;
+    updateTimerDisplay();
+   }, 200);
+  }
+
+  function stopTimer() {
+   if (!running) return;
+   running = false;
+   clearInterval(timerId);
+   timerId = null;
+   elapsed = performance.now() - startTime;
+   updateTimerDisplay();
+  }
+
+  function resetTimer() {
+   stopTimer();
+   elapsed = 0;
+   updateTimerDisplay();
+   if (!won) startTimer();
+   saveGame();
+  }
+
+  function loadBest() {
+   const saved = localStorage.getItem(BEST_KEY);
+   bestEl.textContent = saved ? '🏆 Mejor: ' + formatTime(+saved) : '🏆 Mejor: --:--';
+  }
+
+  function saveBestIfNeeded(finalMs) {
+   const saved = localStorage.getItem(BEST_KEY);
+   const prev = saved ? +saved : Infinity;
+   if (finalMs < prev) {
+    localStorage.setItem(BEST_KEY, finalMs);
+    loadBest();
+    return true;
+   }
+   return false;
+  }
+
+  /* ---------- Guardado en localStorage ---------- */
+  function saveGame() {
+   try {
+    const data = {
+     solution,
+     puzzle,
+     selected,
+     elapsed,
+     won,
+     savedAt: Date.now()
+    };
+    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+   } catch (e) {
+    console.warn('No se pudo guardar la partida:', e);
+   }
+  }
+
+  function loadGame() {
+   const raw = localStorage.getItem(SAVE_KEY);
+   if (!raw) return false;
+   try {
+    const data = JSON.parse(raw);
+    if (!data.solution || !data.puzzle) return false;
+
+    solution = data.solution;
+    puzzle = data.puzzle;
+    selected = data.selected || null;
+    elapsed = data.elapsed || 0;
+    won = !!data.won;
+
+    renderBoard();
+    updateTimerDisplay();
+
+    if (selected) applyHighlights();
+    if (won) {
+     msgEl.textContent = '✅ Partida ya completada';
+     msgEl.style.color = '#a5d6a7';
+    } else {
+     startTimer();
+    }
+    return true;
+   } catch (e) {
+    console.warn('Partida guardada corrupta, se ignora:', e);
+    return false;
+   }
+  }
+
+  function clearSave() {
+   localStorage.removeItem(SAVE_KEY);
+   msgEl.textContent = 'Guardado eliminado';
+   msgEl.style.color = '#ffd54f';
+   msgEl.classList.remove('record');
+  }
+
+  /* ---------- Render ---------- */
+  function renderBoard() {
+   boardEl.innerHTML = '';
+   for (let r = 0; r < 9; r++) {
+    for (let c = 0; c < 9; c++) {
+     const div = document.createElement('div');
+     div.className = 'cell';
+     div.dataset.r = r;
+     div.dataset.c = c;
+     if (puzzle[r][c] !== 0) {
+      div.textContent = puzzle[r][c];
+      div.classList.add('fixed');
+     }
+     div.addEventListener('click', () => selectCell(r, c));
+     boardEl.appendChild(div);
+    }
+   }
+  }
+
+  /* ---------- Resaltado ---------- */
+  function clearHighlights() {
+   boardEl.querySelectorAll('.cell').forEach(el => {
+    el.classList.remove('highlight', 'same-number', 'selected');
+   });
+  }
+
+  function applyHighlights() {
+   clearHighlights();
+   if (!selected) return;
+
+   const { r: sr, c: sc } = selected;
+   const srBox = Math.floor(sr / 3) * 3;
+   const scBox = Math.floor(sc / 3) * 3;
+   const val = puzzle[sr][sc];
+
+   boardEl.querySelectorAll('.cell').forEach(el => {
+    const r = +el.dataset.r;
+    const c = +el.dataset.c;
+
+    const inRow = r === sr;
+    const inCol = c === sc;
+    const inBox = r >= srBox && r < srBox + 3 && c >= scBox && c < scBox + 3;
+
+    if (inRow || inCol || inBox) el.classList.add('highlight');
+    if (val !== 0 && puzzle[r][c] === val) el.classList.add('same-number');
+    if (r === sr && c === sc) el.classList.add('selected');
+   });
+  }
+
+  function selectCell(r, c) {
+   selected = { r, c };
+   applyHighlights();
+   saveGame();
+  }
+
+  /* ---------- Colocar números ---------- */
+  function placeNumber(n) {
+   if (!selected || won) return;
+   if (!running) startTimer();
+
+   const { r, c } = selected;
+   const el = boardEl.querySelector(`.cell[data-r="${r}"][data-c="${c}"]`);
+   if (el.classList.contains('fixed')) return;
+
+   puzzle[r][c] = n;
+   el.textContent = n === 0 ? '' : n;
+   el.classList.remove('error');
+
+   applyHighlights();
+   checkWin();
+   if (!won) saveGame();
+  }
+
+  function checkWin() {
+   for (let r = 0; r < 9; r++)
+    for (let c = 0; c < 9; c++)
+     if (puzzle[r][c] !== solution[r][c]) return;
+
+   won = true;
+   stopTimer();
+   const isRecord = saveBestIfNeeded(Math.floor(elapsed));
+   const tiempo = formatTime(elapsed);
+
+   if (isRecord) {
+    msgEl.textContent = `🎉 ¡Récord! Resuelto en ${tiempo}`;
+    msgEl.classList.add('record');
+   } else {
+    msgEl.textContent = `🎉 ¡Felicidades! Lo resolviste en ${tiempo}`;
+    msgEl.classList.remove('record');
+   }
+   msgEl.style.color = isRecord ? '' : '#a5d6a7';
+
+   saveGame();
+  }
+
+  function checkErrors() {
+   let errors = 0;
+   boardEl.querySelectorAll('.cell').forEach(el => {
+    const r = +el.dataset.r, c = +el.dataset.c;
+    el.classList.remove('error');
+    if (puzzle[r][c] !== 0 && puzzle[r][c] !== solution[r][c]) {
+     el.classList.add('error');
+     errors++;
+    }
+   });
+   if (errors === 0) {
+    msgEl.textContent = 'Todo correcto hasta ahora ✅';
+    msgEl.style.color = '#a5d6a7';
+   } else {
+    msgEl.textContent = `Hay ${errors} número(s) incorrecto(s)`;
+    msgEl.style.color = '#ff8a80';
+   }
+   applyHighlights();
+  }
+
+  function newGame() {
+   solution = generateFullBoard();
+   puzzle = makePuzzle(solution, 45);
+   selected = null;
+   won = false;
+   msgEl.textContent = '';
+   msgEl.classList.remove('record');
+   msgEl.style.color = '';
+
+   renderBoard();
+
+   stopTimer();
+   elapsed = 0;
+   updateTimerDisplay();
+   startTimer();
+
+   saveGame();
+  }
+
+  /* ---------- Teclado numérico ---------- */
+  for (let i = 1; i <= 9; i++) {
+   const b = document.createElement('button');
+   b.textContent = i;
+   b.addEventListener('click', () => placeNumber(i));
+   padEl.appendChild(b);
+  }
+  const erase = document.createElement('button');
+  erase.textContent = '⌫';
+  erase.className = 'erase';
+  erase.addEventListener('click', () => placeNumber(0));
+  padEl.appendChild(erase);
+
+  /* ---------- Controles ---------- */
+  document.getElementById('newGame').addEventListener('click', newGame);
+  document.getElementById('check').addEventListener('click', checkErrors);
+  document.getElementById('resetTimer').addEventListener('click', resetTimer);
+  document.getElementById('clearSave').addEventListener('click', clearSave);
+
+  /* ---------- Teclado físico ---------- */
+  document.addEventListener('keydown', e => {
+   if (e.key >= '1' && e.key <= '9') placeNumber(+e.key);
+   if (e.key === 'Backspace' || e.key === 'Delete') placeNumber(0);
+  });
+
+  /* ---------- Guardado periódico del tiempo ---------- */
+  setInterval(() => { if (!won) saveGame(); }, 5000);
+
+  /* ---------- Guardar al salir/ocultar ---------- */
+  window.addEventListener('beforeunload', () => { if (!won) saveGame(); });
+  document.addEventListener('visibilitychange', () => {
+   if (document.hidden && !won) saveGame();
+  });
+
+  /* ---------- Iniciar ---------- */
+  loadBest();
+  if (!loadGame()) {
+   newGame();
+  }
+ </script>
+
+<script>
+ if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./service-worker.js')
+   .then(() => console.log('Service Worker registrado'))
+   .catch(err => console.warn('Error al registrar SW:', err));
+ }
+</script>
+
+</body>
+
+</html>
