@@ -4,9 +4,9 @@
 <head>
  <meta charset="UTF-8">
  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#1e3c72">
  <title>Sudoku</title>
+ <link rel="manifest" href="manifest.json">
+ <meta name="theme-color" content="#1e3c72">
  <style>
   * {
    box-sizing: border-box;
@@ -67,9 +67,12 @@
    border: 3px solid #0d1b3e;
    border-radius: 6px;
    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+   overflow: hidden;
+   /* Para que las animaciones no se salgan */
   }
 
   .cell {
+   position: relative;
    display: flex;
    align-items: center;
    justify-content: center;
@@ -79,24 +82,25 @@
    border: 1px solid #c5cae9;
    cursor: pointer;
    user-select: none;
-   transition: background 0.15s;
+   transition: background-color 0.2s, color 0.2s;
   }
 
   .cell.fixed {
    color: #000;
    cursor: default;
+   background-color: #f5f5f5;
   }
 
   .cell.highlight {
-   background: #e3f2fd;
+   background-color: #e3f2fd;
   }
 
   .cell.same-number {
-   background: #b3e5fc;
+   background-color: #b3e5fc;
   }
 
   .cell.selected {
-   background: #64b5f6 !important;
+   background-color: #64b5f6 !important;
    color: #fff;
   }
 
@@ -104,11 +108,64 @@
    color: #fff;
   }
 
+  /* EFECTO 3: Número mal en rojo */
   .cell.error {
-   color: #d32f2f;
-   background: #ffcdd2 !important;
+   color: #d32f2f !important;
+   background-color: #ffcdd2 !important;
+   animation: shake 0.3s;
   }
 
+  @keyframes shake {
+
+   0%,
+   100% {
+    transform: translateX(0);
+   }
+
+   25% {
+    transform: translateX(-4px);
+   }
+
+   75% {
+    transform: translateX(4px);
+   }
+  }
+
+  /* EFECTO 2: Cuadrante completado (destello verde) */
+  .cell.box-complete {
+   animation: flash-green 1s ease-out;
+  }
+
+  @keyframes flash-green {
+   0% {
+    background-color: #a5d6a7;
+   }
+
+   100% {
+    background-color: transparent;
+   }
+  }
+
+  /* EFECTO 1: Línea completada (efecto escalera azul) */
+  .cell.line-complete {
+   animation: flash-blue 1.2s ease-out;
+  }
+
+  @keyframes flash-blue {
+   0% {
+    background-color: #90caf9;
+    transform: scale(1.1);
+    z-index: 10;
+   }
+
+   100% {
+    background-color: transparent;
+    transform: scale(1);
+    z-index: 1;
+   }
+  }
+
+  /* Bordes gruesos */
   .cell:nth-child(3n) {
    border-right: 2px solid #0d1b3e;
   }
@@ -239,18 +296,12 @@
 
   function generateFullBoard() {
    const board = Array.from({ length: 9 }, () => Array(9).fill(0));
-
    function isValid(b, r, c, n) {
-    for (let i = 0; i < 9; i++) {
-     if (b[r][i] === n || b[i][c] === n) return false;
-    }
+    for (let i = 0; i < 9; i++) { if (b[r][i] === n || b[i][c] === n) return false; }
     const br = Math.floor(r / 3) * 3, bc = Math.floor(c / 3) * 3;
-    for (let i = 0; i < 3; i++)
-     for (let j = 0; j < 3; j++)
-      if (b[br + i][bc + j] === n) return false;
+    for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) if (b[br + i][bc + j] === n) return false;
     return true;
    }
-
    function fill(b) {
     for (let r = 0; r < 9; r++) {
      for (let c = 0; c < 9; c++) {
@@ -269,7 +320,6 @@
     }
     return true;
    }
-
    fill(board);
    return board;
   }
@@ -277,10 +327,7 @@
   function makePuzzle(fullBoard, holes) {
    const puzzle = fullBoard.map(r => r.slice());
    const positions = [];
-   for (let r = 0; r < 9; r++)
-    for (let c = 0; c < 9; c++)
-     positions.push([r, c]);
-
+   for (let r = 0; r < 9; r++) for (let c = 0; c < 9; c++) positions.push([r, c]);
    shuffle(positions);
    for (let i = 0; i < holes; i++) {
     const [r, c] = positions[i];
@@ -302,11 +349,7 @@
   let won = false;
 
   /* ---------- Temporizador ---------- */
-  let startTime = 0;
-  let elapsed = 0;
-  let timerId = null;
-  let running = false;
-
+  let startTime = 0, elapsed = 0, timerId = null, running = false;
   const BEST_KEY = 'sudoku_best_time';
   const SAVE_KEY = 'sudoku_save_v1';
 
@@ -316,21 +359,13 @@
    const s = String(total % 60).padStart(2, '0');
    return `${m}:${s}`;
   }
-
-  function updateTimerDisplay() {
-   timerEl.textContent = '⏱ ' + formatTime(elapsed);
-  }
-
+  function updateTimerDisplay() { timerEl.textContent = '⏱ ' + formatTime(elapsed); }
   function startTimer() {
    if (running) return;
    running = true;
    startTime = performance.now() - elapsed;
-   timerId = setInterval(() => {
-    elapsed = performance.now() - startTime;
-    updateTimerDisplay();
-   }, 200);
+   timerId = setInterval(() => { elapsed = performance.now() - startTime; updateTimerDisplay(); }, 200);
   }
-
   function stopTimer() {
    if (!running) return;
    running = false;
@@ -339,20 +374,15 @@
    elapsed = performance.now() - startTime;
    updateTimerDisplay();
   }
-
   function resetTimer() {
-   stopTimer();
-   elapsed = 0;
-   updateTimerDisplay();
+   stopTimer(); elapsed = 0; updateTimerDisplay();
    if (!won) startTimer();
    saveGame();
   }
-
   function loadBest() {
    const saved = localStorage.getItem(BEST_KEY);
    bestEl.textContent = saved ? '🏆 Mejor: ' + formatTime(+saved) : '🏆 Mejor: --:--';
   }
-
   function saveBestIfNeeded(finalMs) {
    const saved = localStorage.getItem(BEST_KEY);
    const prev = saved ? +saved : Infinity;
@@ -367,55 +397,28 @@
   /* ---------- Guardado en localStorage ---------- */
   function saveGame() {
    try {
-    const data = {
-     solution,
-     puzzle,
-     selected,
-     elapsed,
-     won,
-     savedAt: Date.now()
-    };
+    const data = { solution, puzzle, selected, elapsed, won, savedAt: Date.now() };
     localStorage.setItem(SAVE_KEY, JSON.stringify(data));
-   } catch (e) {
-    console.warn('No se pudo guardar la partida:', e);
-   }
+   } catch (e) { console.warn('Error al guardar:', e); }
   }
-
   function loadGame() {
    const raw = localStorage.getItem(SAVE_KEY);
    if (!raw) return false;
    try {
     const data = JSON.parse(raw);
     if (!data.solution || !data.puzzle) return false;
-
-    solution = data.solution;
-    puzzle = data.puzzle;
-    selected = data.selected || null;
-    elapsed = data.elapsed || 0;
-    won = !!data.won;
-
-    renderBoard();
-    updateTimerDisplay();
-
+    solution = data.solution; puzzle = data.puzzle;
+    selected = data.selected || null; elapsed = data.elapsed || 0; won = !!data.won;
+    renderBoard(); updateTimerDisplay();
     if (selected) applyHighlights();
-    if (won) {
-     msgEl.textContent = '✅ Partida ya completada';
-     msgEl.style.color = '#a5d6a7';
-    } else {
-     startTimer();
-    }
+    if (won) { msgEl.textContent = '✅ Partida ya completada'; msgEl.style.color = '#a5d6a7'; }
+    else { startTimer(); }
     return true;
-   } catch (e) {
-    console.warn('Partida guardada corrupta, se ignora:', e);
-    return false;
-   }
+   } catch (e) { return false; }
   }
-
   function clearSave() {
    localStorage.removeItem(SAVE_KEY);
-   msgEl.textContent = 'Guardado eliminado';
-   msgEl.style.color = '#ffd54f';
-   msgEl.classList.remove('record');
+   msgEl.textContent = 'Guardado eliminado'; msgEl.style.color = '#ffd54f';
   }
 
   /* ---------- Render ---------- */
@@ -425,8 +428,7 @@
     for (let c = 0; c < 9; c++) {
      const div = document.createElement('div');
      div.className = 'cell';
-     div.dataset.r = r;
-     div.dataset.c = c;
+     div.dataset.r = r; div.dataset.c = c;
      if (puzzle[r][c] !== 0) {
       div.textContent = puzzle[r][c];
       div.classList.add('fixed');
@@ -443,37 +445,28 @@
     el.classList.remove('highlight', 'same-number', 'selected');
    });
   }
-
   function applyHighlights() {
    clearHighlights();
    if (!selected) return;
-
    const { r: sr, c: sc } = selected;
-   const srBox = Math.floor(sr / 3) * 3;
-   const scBox = Math.floor(sc / 3) * 3;
+   const srBox = Math.floor(sr / 3) * 3, scBox = Math.floor(sc / 3) * 3;
    const val = puzzle[sr][sc];
 
    boardEl.querySelectorAll('.cell').forEach(el => {
-    const r = +el.dataset.r;
-    const c = +el.dataset.c;
-
-    const inRow = r === sr;
-    const inCol = c === sc;
-    const inBox = r >= srBox && r < srBox + 3 && c >= scBox && c < scBox + 3;
-
-    if (inRow || inCol || inBox) el.classList.add('highlight');
+    const r = +el.dataset.r, c = +el.dataset.c;
+    if (r === sr || c === sc || (r >= srBox && r < srBox + 3 && c >= scBox && c < scBox + 3))
+     el.classList.add('highlight');
     if (val !== 0 && puzzle[r][c] === val) el.classList.add('same-number');
     if (r === sr && c === sc) el.classList.add('selected');
    });
   }
-
   function selectCell(r, c) {
    selected = { r, c };
    applyHighlights();
    saveGame();
   }
 
-  /* ---------- Colocar números ---------- */
+  /* ---------- Lógica de Colocar Números ---------- */
   function placeNumber(n) {
    if (!selected || won) return;
    if (!running) startTimer();
@@ -486,15 +479,81 @@
    el.textContent = n === 0 ? '' : n;
    el.classList.remove('error');
 
+   // Efecto 3: Comprobar si es un error inmediato
+   if (n !== 0 && n !== solution[r][c]) {
+    el.classList.add('error');
+   }
+
    applyHighlights();
    checkWin();
+
+   // Efectos 1 y 2: Comprobar si se ha completado algo
+   if (n !== 0) {
+    checkCompletedEntities(r, c);
+   }
+
    if (!won) saveGame();
   }
 
+  /* ---------- Efectos de líneas y cuadrantes ---------- */
+  function checkCompletedEntities(r, c) {
+   // Comprobar Cuadrante (Efecto 2)
+   const boxR = Math.floor(r / 3) * 3;
+   const boxC = Math.floor(c / 3) * 3;
+   let boxComplete = true;
+   for (let i = 0; i < 3; i++) {
+    for (let j = 0; j < 3; j++) {
+     if (puzzle[boxR + i][boxC + j] === 0 || puzzle[boxR + i][boxC + j] !== solution[boxR + i][boxC + j]) {
+      boxComplete = false; break;
+     }
+    }
+    if (!boxComplete) break;
+   }
+   if (boxComplete) {
+    for (let i = 0; i < 3; i++) {
+     for (let j = 0; j < 3; j++) {
+      const cell = boardEl.querySelector(`.cell[data-r="${boxR + i}"][data-c="${boxC + j}"]`);
+      cell.classList.remove('box-complete');
+      void cell.offsetWidth; // Trigger reflow
+      cell.classList.add('box-complete');
+     }
+    }
+   }
+
+   // Comprobar Fila (Efecto 1)
+   let rowComplete = true;
+   for (let col = 0; col < 9; col++) {
+    if (puzzle[r][col] === 0 || puzzle[r][col] !== solution[r][col]) { rowComplete = false; break; }
+   }
+   if (rowComplete) {
+    for (let col = 0; col < 9; col++) {
+     const cell = boardEl.querySelector(`.cell[data-r="${r}"][data-c="${col}"]`);
+     cell.style.animationDelay = `${col * 0.05}s`; // Efecto escalera
+     cell.classList.remove('line-complete');
+     void cell.offsetWidth;
+     cell.classList.add('line-complete');
+    }
+   }
+
+   // Comprobar Columna (Efecto 1)
+   let colComplete = true;
+   for (let row = 0; row < 9; row++) {
+    if (puzzle[row][c] === 0 || puzzle[row][c] !== solution[row][c]) { colComplete = false; break; }
+   }
+   if (colComplete) {
+    for (let row = 0; row < 9; row++) {
+     const cell = boardEl.querySelector(`.cell[data-r="${row}"][data-c="${c}"]`);
+     cell.style.animationDelay = `${row * 0.05}s`;
+     cell.classList.remove('line-complete');
+     void cell.offsetWidth;
+     cell.classList.add('line-complete');
+    }
+   }
+  }
+
+  /* ---------- Victoria (Efecto 4) ---------- */
   function checkWin() {
-   for (let r = 0; r < 9; r++)
-    for (let c = 0; c < 9; c++)
-     if (puzzle[r][c] !== solution[r][c]) return;
+   for (let r = 0; r < 9; r++) for (let c = 0; c < 9; c++) if (puzzle[r][c] !== solution[r][c]) return;
 
    won = true;
    stopTimer();
@@ -502,15 +561,20 @@
    const tiempo = formatTime(elapsed);
 
    if (isRecord) {
-    msgEl.textContent = `🎉 ¡Récord! Resuelto en ${tiempo}`;
+    msgEl.textContent = `🎉 ¡Récord! Resuelto en ${tiempo}. Reiniciando...`;
     msgEl.classList.add('record');
    } else {
-    msgEl.textContent = `🎉 ¡Felicidades! Lo resolviste en ${tiempo}`;
+    msgEl.textContent = `🎉 ¡Felicidades! Lo resolviste en ${tiempo}. Reiniciando...`;
     msgEl.classList.remove('record');
    }
    msgEl.style.color = isRecord ? '' : '#a5d6a7';
 
-   saveGame();
+   saveGame(); // Guardar que se ha ganado
+
+   // Efecto 4: Reinicio automático tras 3 segundos
+   setTimeout(() => {
+    newGame();
+   }, 3000);
   }
 
   function checkErrors() {
@@ -523,36 +587,26 @@
      errors++;
     }
    });
-   if (errors === 0) {
-    msgEl.textContent = 'Todo correcto hasta ahora ✅';
-    msgEl.style.color = '#a5d6a7';
-   } else {
-    msgEl.textContent = `Hay ${errors} número(s) incorrecto(s)`;
-    msgEl.style.color = '#ff8a80';
-   }
+   if (errors === 0) { msgEl.textContent = 'Todo correcto ✅'; msgEl.style.color = '#a5d6a7'; }
+   else { msgEl.textContent = `Hay ${errors} número(s) incorrecto(s)`; msgEl.style.color = '#ff8a80'; }
    applyHighlights();
   }
 
   function newGame() {
    solution = generateFullBoard();
    puzzle = makePuzzle(solution, 45);
-   selected = null;
-   won = false;
-   msgEl.textContent = '';
-   msgEl.classList.remove('record');
-   msgEl.style.color = '';
+   selected = null; won = false;
+   msgEl.textContent = ''; msgEl.classList.remove('record'); msgEl.style.color = '';
 
+   // Limpiar cualquier animación pendiente
+   boardEl.innerHTML = '';
    renderBoard();
 
-   stopTimer();
-   elapsed = 0;
-   updateTimerDisplay();
-   startTimer();
-
+   stopTimer(); elapsed = 0; updateTimerDisplay(); startTimer();
    saveGame();
   }
 
-  /* ---------- Teclado numérico ---------- */
+  /* ---------- Teclado, Controles e Inicio ---------- */
   for (let i = 1; i <= 9; i++) {
    const b = document.createElement('button');
    b.textContent = i;
@@ -560,47 +614,35 @@
    padEl.appendChild(b);
   }
   const erase = document.createElement('button');
-  erase.textContent = '⌫';
-  erase.className = 'erase';
+  erase.textContent = '⌫'; erase.className = 'erase';
   erase.addEventListener('click', () => placeNumber(0));
   padEl.appendChild(erase);
 
-  /* ---------- Controles ---------- */
   document.getElementById('newGame').addEventListener('click', newGame);
   document.getElementById('check').addEventListener('click', checkErrors);
   document.getElementById('resetTimer').addEventListener('click', resetTimer);
   document.getElementById('clearSave').addEventListener('click', clearSave);
 
-  /* ---------- Teclado físico ---------- */
   document.addEventListener('keydown', e => {
    if (e.key >= '1' && e.key <= '9') placeNumber(+e.key);
    if (e.key === 'Backspace' || e.key === 'Delete') placeNumber(0);
   });
 
-  /* ---------- Guardado periódico del tiempo ---------- */
+  window.addEventListener('beforeunload', () => { if (!won) saveGame(); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden && !won) saveGame(); });
   setInterval(() => { if (!won) saveGame(); }, 5000);
 
-  /* ---------- Guardar al salir/ocultar ---------- */
-  window.addEventListener('beforeunload', () => { if (!won) saveGame(); });
-  document.addEventListener('visibilitychange', () => {
-   if (document.hidden && !won) saveGame();
-  });
+  /* ---------- Registrar Service Worker (PWA) ---------- */
+  if ('serviceWorker' in navigator) {
+   navigator.serviceWorker.register('./service-worker.js')
+    .then(() => console.log('SW registrado'))
+    .catch(err => console.warn('Error SW:', err));
+  }
 
   /* ---------- Iniciar ---------- */
   loadBest();
-  if (!loadGame()) {
-   newGame();
-  }
+  if (!loadGame()) { newGame(); }
  </script>
-
-<script>
- if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./service-worker.js')
-   .then(() => console.log('Service Worker registrado'))
-   .catch(err => console.warn('Error al registrar SW:', err));
- }
-</script>
-
 </body>
 
 </html>
