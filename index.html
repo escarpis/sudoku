@@ -68,7 +68,6 @@
    border-radius: 6px;
    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
    overflow: hidden;
-   /* Para que las animaciones no se salgan */
   }
 
   .cell {
@@ -108,7 +107,6 @@
    color: #fff;
   }
 
-  /* EFECTO 3: Número mal en rojo */
   .cell.error {
    color: #d32f2f !important;
    background-color: #ffcdd2 !important;
@@ -131,7 +129,6 @@
    }
   }
 
-  /* EFECTO 2: Cuadrante completado (destello verde) */
   .cell.box-complete {
    animation: flash-green 1s ease-out;
   }
@@ -146,7 +143,6 @@
    }
   }
 
-  /* EFECTO 1: Línea completada (efecto escalera azul) */
   .cell.line-complete {
    animation: flash-blue 1.2s ease-out;
   }
@@ -165,7 +161,6 @@
    }
   }
 
-  /* Bordes gruesos */
   .cell:nth-child(3n) {
    border-right: 2px solid #0d1b3e;
   }
@@ -285,7 +280,6 @@
  <div id="msg"></div>
 
  <script>
-  /* ---------- Generador de Sudoku ---------- */
   function shuffle(a) {
    for (let i = a.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -336,7 +330,6 @@
    return puzzle;
   }
 
-  /* ---------- Estado del juego ---------- */
   const boardEl = document.getElementById('board');
   const padEl = document.getElementById('pad');
   const msgEl = document.getElementById('msg');
@@ -348,7 +341,6 @@
   let selected = null;
   let won = false;
 
-  /* ---------- Temporizador ---------- */
   let startTime = 0, elapsed = 0, timerId = null, running = false;
   const BEST_KEY = 'sudoku_best_time';
   const SAVE_KEY = 'sudoku_save_v1';
@@ -394,7 +386,6 @@
    return false;
   }
 
-  /* ---------- Guardado en localStorage ---------- */
   function saveGame() {
    try {
     const data = { solution, puzzle, selected, elapsed, won, savedAt: Date.now() };
@@ -421,7 +412,6 @@
    msgEl.textContent = 'Guardado eliminado'; msgEl.style.color = '#ffd54f';
   }
 
-  /* ---------- Render ---------- */
   function renderBoard() {
    boardEl.innerHTML = '';
    for (let r = 0; r < 9; r++) {
@@ -439,7 +429,6 @@
    }
   }
 
-  /* ---------- Resaltado ---------- */
   function clearHighlights() {
    boardEl.querySelectorAll('.cell').forEach(el => {
     el.classList.remove('highlight', 'same-number', 'selected');
@@ -466,7 +455,6 @@
    saveGame();
   }
 
-  /* ---------- Lógica de Colocar Números ---------- */
   function placeNumber(n) {
    if (!selected || won) return;
    if (!running) startTimer();
@@ -479,7 +467,6 @@
    el.textContent = n === 0 ? '' : n;
    el.classList.remove('error');
 
-   // Efecto 3: Comprobar si es un error inmediato
    if (n !== 0 && n !== solution[r][c]) {
     el.classList.add('error');
    }
@@ -487,7 +474,6 @@
    applyHighlights();
    checkWin();
 
-   // Efectos 1 y 2: Comprobar si se ha completado algo
    if (n !== 0) {
     checkCompletedEntities(r, c);
    }
@@ -495,7 +481,6 @@
    if (!won) saveGame();
   }
 
-  /* ---------- Efectos de líneas y cuadrantes ---------- */
   function checkCompletedEntities(r, c) {
    // Comprobar Cuadrante (Efecto 2)
    const boxR = Math.floor(r / 3) * 3;
@@ -514,13 +499,12 @@
      for (let j = 0; j < 3; j++) {
       const cell = boardEl.querySelector(`.cell[data-r="${boxR + i}"][data-c="${boxC + j}"]`);
       cell.classList.remove('box-complete');
-      void cell.offsetWidth; // Trigger reflow
+      void cell.offsetWidth; 
       cell.classList.add('box-complete');
      }
     }
    }
 
-   // Comprobar Fila (Efecto 1)
    let rowComplete = true;
    for (let col = 0; col < 9; col++) {
     if (puzzle[r][col] === 0 || puzzle[r][col] !== solution[r][col]) { rowComplete = false; break; }
@@ -528,14 +512,13 @@
    if (rowComplete) {
     for (let col = 0; col < 9; col++) {
      const cell = boardEl.querySelector(`.cell[data-r="${r}"][data-c="${col}"]`);
-     cell.style.animationDelay = `${col * 0.05}s`; // Efecto escalera
+     cell.style.animationDelay = `${col * 0.05}s`; 
      cell.classList.remove('line-complete');
      void cell.offsetWidth;
      cell.classList.add('line-complete');
     }
    }
 
-   // Comprobar Columna (Efecto 1)
    let colComplete = true;
    for (let row = 0; row < 9; row++) {
     if (puzzle[row][c] === 0 || puzzle[row][c] !== solution[row][c]) { colComplete = false; break; }
@@ -551,7 +534,6 @@
    }
   }
 
-  /* ---------- Victoria (Efecto 4) ---------- */
   function checkWin() {
    for (let r = 0; r < 9; r++) for (let c = 0; c < 9; c++) if (puzzle[r][c] !== solution[r][c]) return;
 
@@ -569,9 +551,8 @@
    }
    msgEl.style.color = isRecord ? '' : '#a5d6a7';
 
-   saveGame(); // Guardar que se ha ganado
+   saveGame(); 
 
-   // Efecto 4: Reinicio automático tras 3 segundos
    setTimeout(() => {
     newGame();
    }, 3000);
@@ -598,7 +579,6 @@
    selected = null; won = false;
    msgEl.textContent = ''; msgEl.classList.remove('record'); msgEl.style.color = '';
 
-   // Limpiar cualquier animación pendiente
    boardEl.innerHTML = '';
    renderBoard();
 
@@ -606,7 +586,6 @@
    saveGame();
   }
 
-  /* ---------- Teclado, Controles e Inicio ---------- */
   for (let i = 1; i <= 9; i++) {
    const b = document.createElement('button');
    b.textContent = i;
@@ -632,17 +611,16 @@
   document.addEventListener('visibilitychange', () => { if (document.hidden && !won) saveGame(); });
   setInterval(() => { if (!won) saveGame(); }, 5000);
 
-  /* ---------- Registrar Service Worker (PWA) ---------- */
   if ('serviceWorker' in navigator) {
    navigator.serviceWorker.register('./service-worker.js')
     .then(() => console.log('SW registrado'))
     .catch(err => console.warn('Error SW:', err));
   }
 
-  /* ---------- Iniciar ---------- */
   loadBest();
   if (!loadGame()) { newGame(); }
  </script>
+ 
 </body>
 
 </html>
